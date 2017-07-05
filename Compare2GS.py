@@ -1,6 +1,7 @@
 import argparse
-import parseanalysis as pa
+import parseanalysis
 import dxpy
+import json
 
 
 def get_args():
@@ -14,6 +15,7 @@ def get_args():
         '--auth_token',
         type=str,
         default=None,
+        required=True,
         help='DNANexus authentication token')
     parser.add_argument(
         '--assembly',
@@ -40,5 +42,20 @@ def main():
     assembly = args.assembly
     authenticate(token)
     analysis_info = dxpy.describe(analysisID)
-    analysis_md5_data = pa.calculate_md5_for_analysis(
-        pa.parseanalysis(analysis_info, assembly))
+    analysis_md5_data = parseanalysis.calculate_md5_for_analysis(
+        parseanalysis.parse_analysis(analysis_info, assembly))
+    reference_filename = '_'.join([analysis_md5_data.target, str(analysis_md5_data.unreplicated), analysis_md5_data.assembly]) + '.json'
+    reference_filename = 'GS_Reference_jsons/' + reference_filename
+
+    with open(reference_filename, 'r') as f:
+        reference_json = json.load(f)[3]
+
+    for key in analysis_md5_data.file_descriptions:
+        if reference_json[key] == analysis_md5_data.file_descriptions[key]:
+            print 'MD5 matches for %s' % key
+        else:
+            print 'MD5 does not match for %s' % key
+
+
+if __name__ == "__main__":
+    main()
